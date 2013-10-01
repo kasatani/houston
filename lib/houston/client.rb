@@ -6,7 +6,7 @@ module Houston
   APPLE_DEVELOPMENT_FEEDBACK_URI = "apn://feedback.sandbox.push.apple.com:2196"
 
   class Client
-    attr_accessor :gateway_uri, :feedback_uri, :certificate, :passphrase, :timeout, :connection
+    attr_accessor :gateway_uri, :feedback_uri, :certificate, :passphrase, :timeout, :connection, :logger
 
     class << self
       def development
@@ -66,6 +66,7 @@ module Houston
             @retries += 1
             connection.close
 
+            logger.info "Connection closed: #{$!}" if logger
             raise IOError, "Could not connect to APNS after #{@max_retries} attempts" if @retries > @max_retries
             return push(*notifications)
           end
@@ -87,12 +88,14 @@ module Houston
           read_socket, write_socket = IO.select([ssl], nil, [ssl], timeout)
           if (read_socket && read_socket[0])
             error = connection.read(6)
+            break
           end
         end
       end
 
       if error
         command, status, index = error.unpack("cci")
+        logger.info "Received error: #{command}, #{status}, #{index}" if logger
         notifications.slice!(0..index)
         notifications.each(&:mark_as_unsent!)
         push(*notifications)
