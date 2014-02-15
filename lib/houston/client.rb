@@ -57,7 +57,10 @@ module Houston
         notifications.each_with_index do |notification, index|
           next unless notification.kind_of?(Notification)
           next if notification.sent?
-          next unless notification.valid?
+          unless notification.valid?
+            logger.warn "notification is invalid: #{notification.payload.to_json}" if logger
+            next
+          end
 
           notification.id = index
 
