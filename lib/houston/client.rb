@@ -63,11 +63,11 @@ module Houston
 
           begin
             connection.write(notification.message)
-          rescue OpenSSL::SSL::SSLError, Errno::EPIPE
+          rescue OpenSSL::SSL::SSLError, Errno::EPIPE, Errno::ETIMEDOUT
             @retries += 1
             connection.close
 
-            logger.info "Connection closed: #{$!}" if logger
+            logger.info "Connection closed: #{$!.class}: #{$!}" if logger
             raise IOError, "Could not connect to APNS after #{@max_retries} attempts" if @retries > @max_retries
             return push(*notifications)
           end
